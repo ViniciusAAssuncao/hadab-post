@@ -1,195 +1,359 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject, of } from 'rxjs';
-import { delay, map } from 'rxjs/operators';
-import { Post, PostInteraction } from '../models/Post';
+import { Observable, forkJoin, from, of } from 'rxjs';
+import { map, catchError, switchMap, tap } from 'rxjs/operators';
+import { Post, PostCategory, PostInteraction, PostStats } from '../models/Post';
+import PocketBase from 'pocketbase';
+import { environment } from '../../../../environments/environment';
+import { User } from '../models/User';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class PostService {
-  private mockPosts: Post[] = [
-    {
-      id: '1',
-      title: 'Eleições 2024: Últimas pesquisas mostram cenário acirrado',
-      content: 'As mais recentes pesquisas eleitorais revelam um cenário extremamente competitivo para as eleições de 2024, com margem de erro dentro dos limites estatísticos.',
-      category: {
-        id: 'politica',
-        name: 'Política',
-        slug: 'politica',
-        color: '#ffffff',
-        backgroundColor: '#dc2626'
-      },
-      author: {
-        id: 'author1',
-        name: 'João Silva',
-        username: 'joaosilva',
-        avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
-        isVerified: true
-      },
-      publishedAt: new Date('2024-01-15T10:30:00'),
-      stats: {
-        views: 45300,
-        likes: 1200,
-        comments: 89,
-        shares: 156,
-        timeAgo: '2h'
-      },
-      imageUrl: 'https://images.unsplash.com/photo-1586348943529-beaae6c28db9?w=600&h=300&fit=crop',
-      tags: ['eleições', 'pesquisas', 'política'],
-      isPromoted: true
-    },
-    {
-      id: '2',
-      title: 'Inteligência Artificial revoluciona setor de saúde',
-      content: 'Novas tecnologias de IA estão transformando diagnósticos médicos e tratamentos, prometendo maior precisão e eficiência no cuidado com pacientes.',
-      category: {
-        id: 'tecnologia',
-        name: 'Tecnologia',
-        slug: 'tecnologia',
-        color: '#ffffff',
-        backgroundColor: '#2563eb'
-      },
-      author: {
-        id: 'author2',
-        name: 'Maria Santos',
-        username: 'mariasantos',
-        avatarUrl: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face',
-        isVerified: false
-      },
-      publishedAt: new Date('2024-01-15T08:15:00'),
-      stats: {
-        views: 32600,
-        likes: 890,
-        comments: 45,
-        shares: 78,
-        timeAgo: '4h'
-      },
-      imageUrl: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=600&h=300&fit=crop',
-      tags: ['ia', 'saúde', 'tecnologia', 'medicina']
-    },
-    {
-      id: '3',
-      title: 'Copa do Mundo: Brasil se classifica para as oitavas',
-      content: 'A seleção brasileira garantiu sua vaga nas oitavas de final após vitória convincente por 3x1 contra o adversário, mostrando um futebol envolvente.',
-      category: {
-        id: 'esportes',
-        name: 'Esportes',
-        slug: 'esportes',
-        color: '#ffffff',
-        backgroundColor: '#16a34a'
-      },
-      author: {
-        id: 'author3',
-        name: 'Carlos Oliveira',
-        username: 'carlosoliveira',
-        avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
-        isVerified: true
-      },
-      publishedAt: new Date('2024-01-15T06:45:00'),
-      stats: {
-        views: 78600,
-        likes: 2100,
-        comments: 234,
-        shares: 445,
-        timeAgo: '1h'
-      },
-      imageUrl: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=600&h=300&fit=crop',
-      tags: ['copa', 'brasil', 'futebol', 'oitavas']
-    },
-    {
-      id: '4',
-      title: 'Netflix anuncia nova série original brasileira',
-      content: 'A plataforma de streaming revelou detalhes sobre sua mais nova produção nacional, que promete abordar temas contemporâneos da sociedade brasileira.',
-      category: {
-        id: 'entretenimento',
-        name: 'Entretenimento',
-        slug: 'entretenimento',
-        color: '#ffffff',
-        backgroundColor: '#7c3aed'
-      },
-      author: {
-        id: 'author4',
-        name: 'Ana Costa',
-        username: 'anacosta',
-        avatarUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
-        isVerified: false
-      },
-      publishedAt: new Date('2024-01-15T05:20:00'),
-      stats: {
-        views: 15400,
-        likes: 567,
-        comments: 89,
-        shares: 123,
-        timeAgo: '3h'
-      },
-      imageUrl: 'https://images.unsplash.com/photo-1489599735734-79b4169c2a78?w=600&h=300&fit=crop',
-      tags: ['netflix', 'série', 'brasil', 'streaming']
-    }
-  ];
+  private pb: PocketBase;
+  private usersCache: Map<string, User> = new Map();
 
-  private postsSubject = new BehaviorSubject<Post[]>(this.mockPosts);
-  public posts$ = this.postsSubject.asObservable();
-
-  constructor() {}
-
-  getPosts(): Observable<Post[]> {
-    return this.posts$.pipe(delay(500));
+  constructor() {
+    this.pb = new PocketBase(environment.pocketbaseUrl);
   }
 
-  getPostById(id: string): Observable<Post | undefined> {
-    return this.posts$.pipe(
-      map(posts => posts.find(p => p.id === id)),
-      delay(300)
+  private getUserById(userId: string): Observable<User> {
+    if (this.usersCache.has(userId)) {
+      return of(this.usersCache.get(userId)!);
+    }
+
+    return from(this.pb.collection('users').getOne(userId)).pipe(
+      map((userRecord) => ({
+        id: userRecord.id,
+        name: userRecord['name'] || 'Autor Desconhecido',
+        username: userRecord['username'] || 'desconhecido',
+        avatarUrl: userRecord['avatarUrl'] || 'assets/default-avatar.png',
+        isVerified: userRecord['isVerified'] || false,
+      })),
+      tap((user) => this.usersCache.set(userId, user)),
+      catchError(() => {
+        const defaultUser: User = {
+          id: userId,
+          name: 'Autor Desconhecido',
+          username: 'desconhecido',
+          avatarUrl: 'assets/default-avatar.png',
+          isVerified: false,
+        };
+        this.usersCache.set(userId, defaultUser);
+        return of(defaultUser);
+      })
     );
   }
 
-  getPostsByCategory(categorySlug: string): Observable<Post[]> {
-    return this.posts$.pipe(
-      map(posts => posts.filter(p => p.category.slug === categorySlug)),
-      delay(500)
+  getPosts(
+    page: number = 1,
+    perPage: number = 30
+  ): Observable<{ posts: Post[]; totalPages: number; totalItems: number }> {
+    return from(
+      this.pb.collection('posts').getList(page, perPage, {
+        sort: '-publishedAt,-created',
+        expand: 'category,stats',
+        fields: '*,expand.category.*,expand.stats.*',
+      })
+    ).pipe(
+      switchMap((response) => {
+        const postsWithAuthors$ = response.items.map((item) =>
+          this.enrichPostWithAuthor(item)
+        );
+
+        return forkJoin(postsWithAuthors$).pipe(
+          map((posts) => ({
+            posts,
+            totalPages: response.totalPages,
+            totalItems: response.totalItems,
+          }))
+        );
+      }),
+      catchError((error) => {
+        console.error('Error fetching posts:', error);
+        return of({ posts: [], totalPages: 0, totalItems: 0 });
+      })
+    );
+  }
+
+  private enrichPostWithAuthor(record: any): Observable<Post> {
+    return this.getUserById(record.author).pipe(
+      map((author) => this.mapToPost(record, author))
+    );
+  }
+
+  private mapToPost(record: any, author: User): Post {
+    const expand = record.expand || {};
+    const publishedAt =
+      record.publishedAt && record.publishedAt !== ''
+        ? new Date(record.publishedAt)
+        : new Date(record.created || new Date());
+
+    let category: PostCategory;
+    if (expand.category) {
+      category = {
+        id: expand.category.id,
+        name: expand.category.name || '',
+        slug: expand.category.slug || '',
+        color: expand.category.color || '#ffffff',
+        backgroundColor: expand.category.backgroundColor || '#999999',
+      };
+    } else {
+      category = {
+        id: record.category || 'default-category',
+        name: '',
+        slug: '',
+        color: '#ffffff',
+        backgroundColor: '#999999',
+      };
+    }
+
+    let stats: PostStats;
+    if (expand.stats) {
+      stats = {
+        id: expand.stats.id,
+        views: expand.stats.views || 0,
+        likes: expand.stats.likes || 0,
+        comments: expand.stats.comments || 0,
+        shares: expand.stats.shares || 0,
+        timeAgo: this.calculateTimeAgo(publishedAt),
+      };
+    } else {
+      stats = {
+        id: record.stats || 'default-stats',
+        views: 0,
+        likes: 0,
+        comments: 0,
+        shares: 0,
+        timeAgo: this.calculateTimeAgo(publishedAt),
+      };
+    }
+
+    return {
+      id: record.id,
+      title: record.title || '',
+      content: record.content || '',
+      category,
+      author,
+      publishedAt,
+      stats,
+      imageUrl: record.imageUrl || '',
+      tags: Array.isArray(record.tags) ? record.tags : [],
+      isPromoted: record.isPromoted || false,
+    };
+  }
+
+  getPostById(id: string): Observable<Post | undefined> {
+    return from(
+      this.pb.collection('posts').getOne(id, {
+        expand: 'category,stats',
+        fields: '*,expand.category.*,expand.stats.*',
+      })
+    ).pipe(
+      switchMap((record) => this.enrichPostWithAuthor(record)),
+      catchError((error) => {
+        console.error(`Error fetching post ${id}:`, error);
+        return of(undefined);
+      })
+    );
+  }
+
+  getPostsByCategory(
+    categorySlug: string,
+    page: number = 1,
+    perPage: number = 30
+  ): Observable<{ posts: Post[]; totalPages: number; totalItems: number }> {
+    return from(
+      this.pb.collection('posts').getList(page, perPage, {
+        filter: `category.slug = '${categorySlug}'`,
+        sort: '-publishedAt,-created',
+        expand: 'category,stats',
+        fields: '*,expand.category.*,expand.stats.*',
+      })
+    ).pipe(
+      switchMap((response) => {
+        const postsWithAuthors$ = response.items.map((item) =>
+          this.enrichPostWithAuthor(item)
+        );
+        return forkJoin(postsWithAuthors$).pipe(
+          map((posts) => ({
+            posts,
+            totalPages: response.totalPages,
+            totalItems: response.totalItems,
+          }))
+        );
+      }),
+      catchError((error) => {
+        console.error(
+          `Error fetching posts for category ${categorySlug}:`,
+          error
+        );
+        return of({ posts: [], totalPages: 0, totalItems: 0 });
+      })
     );
   }
 
   handlePostInteraction(interaction: PostInteraction): Observable<boolean> {
-    const currentPosts = this.postsSubject.getValue();
-    const postIndex = currentPosts.findIndex(p => p.id === interaction.postId);
+    return this.getPostById(interaction.id).pipe(
+      switchMap((post) => {
+        if (!post || !post.stats?.id) return of(false);
 
-    if (postIndex > -1) {
-      const postToUpdate = currentPosts[postIndex];
-      const updatedPost = {
-        ...postToUpdate,
-        stats: { ...postToUpdate.stats }
-      };
+        const statsId = post.stats.id;
+        const updateData: any = {};
 
-      switch (interaction.type) {
-        case 'like':
-          updatedPost.stats.likes += 1;
-          break;
-        case 'comment':
-          updatedPost.stats.comments += 1;
-          break;
-        case 'share':
-          updatedPost.stats.shares += 1;
-          break;
-      }
+        switch (interaction.type) {
+          case 'like':
+            updateData.likes = (post.stats.likes || 0) + 1;
+            break;
+          case 'comment':
+            updateData.comments = (post.stats.comments || 0) + 1;
+            break;
+          case 'share':
+            updateData.shares = (post.stats.shares || 0) + 1;
+            break;
+        }
 
-      const newPosts = [...currentPosts];
-      newPosts[postIndex] = updatedPost;
-      
-      this.postsSubject.next(newPosts);
-    }
-    
-    return of(true).pipe(delay(200));
+        return from(
+          this.pb.collection('stats').update(statsId, updateData)
+        ).pipe(
+          map(() => true),
+          catchError((error) => {
+            console.error(
+              `Error updating ${interaction.type} for post ${interaction.id}:`,
+              error
+            );
+            return of(false);
+          })
+        );
+      })
+    );
   }
 
-  searchPosts(query: string): Observable<Post[]> {
-    return this.posts$.pipe(
-        map(posts => posts.filter(post => 
-            post.title.toLowerCase().includes(query.toLowerCase()) ||
-            post.content?.toLowerCase().includes(query.toLowerCase()) ||
-            post.tags?.some(tag => tag.toLowerCase().includes(query.toLowerCase()))
-        )),
-        delay(500)
+  searchPosts(
+    query: string,
+    page: number = 1,
+    perPage: number = 30
+  ): Observable<{ posts: Post[]; totalPages: number; totalItems: number }> {
+    return from(
+      this.pb.collection('posts').getList(page, perPage, {
+        filter: `(title ~ '${query}' || content ~ '${query}' || tags ? '%${query}%')`,
+        sort: '-publishedAt,-created',
+        expand: 'category,stats',
+        fields: '*,expand.category.*,expand.stats.*',
+      })
+    ).pipe(
+      switchMap((response) => {
+        const postsWithAuthors$ = response.items.map((item) =>
+          this.enrichPostWithAuthor(item)
+        );
+        return forkJoin(postsWithAuthors$).pipe(
+          map((posts) => ({
+            posts,
+            totalPages: response.totalPages,
+            totalItems: response.totalItems,
+          }))
+        );
+      }),
+      catchError((error) => {
+        console.error(`Error searching posts for "${query}":`, error);
+        return of({ posts: [], totalPages: 0, totalItems: 0 });
+      })
     );
+  }
+
+  createPost(postData: Partial<Post>): Observable<Post> {
+    return from(
+      this.pb.collection('posts').create({
+        title: postData.title,
+        content: postData.content,
+        category: postData.category?.id,
+        author: postData.author?.id,
+        publishedAt: postData.publishedAt?.toISOString(),
+        stats: postData.stats?.id,
+        imageUrl: postData.imageUrl,
+        tags: postData.tags,
+        isPromoted: postData.isPromoted,
+      })
+    ).pipe(
+      map((item) =>
+        this.mapToPost(
+          item,
+          postData.author || {
+            id: '',
+            name: 'Autor Desconhecido',
+            username: 'desconhecido',
+            avatarUrl: 'assets/default-avatar.png',
+            isVerified: false,
+          }
+        )
+      ),
+      catchError((error) => {
+        console.error('Error creating post:', error);
+        throw error;
+      })
+    );
+  }
+
+  updatePost(id: string, postData: Partial<Post>): Observable<Post> {
+    return from(
+      this.pb.collection('posts').update(id, {
+        title: postData.title,
+        content: postData.content,
+        category: postData.category?.id,
+        author: postData.author?.id,
+        publishedAt: postData.publishedAt?.toISOString(),
+        stats: postData.stats?.id,
+        imageUrl: postData.imageUrl,
+        tags: postData.tags,
+        isPromoted: postData.isPromoted,
+      })
+    ).pipe(
+      map((item) =>
+        this.mapToPost(
+          item,
+          postData.author || {
+            id: '',
+            name: 'Autor Desconhecido',
+            username: 'desconhecido',
+            avatarUrl: 'assets/default-avatar.png',
+            isVerified: false,
+          }
+        )
+      ),
+      catchError((error) => {
+        console.error(`Error updating post ${id}:`, error);
+        throw error;
+      })
+    );
+  }
+
+  deletePost(id: string): Observable<boolean> {
+    return from(this.pb.collection('posts').delete(id)).pipe(
+      map(() => true),
+      catchError((error) => {
+        console.error(`Error deleting post ${id}:`, error);
+        return of(false);
+      })
+    );
+  }
+
+  private calculateTimeAgo(date: Date): string {
+    const now = new Date();
+    const diffSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffSeconds < 60) return 'agora há pouco';
+    if (diffSeconds < 3600) return `há ${Math.floor(diffSeconds / 60)} min`;
+    if (diffSeconds < 86400) return `há ${Math.floor(diffSeconds / 3600)} h`;
+
+    const diffDays = Math.floor(diffSeconds / 86400);
+    if (diffDays < 30) return `há ${diffDays} dia${diffDays > 1 ? 's' : ''}`;
+
+    const diffMonths = Math.floor(diffDays / 30);
+    if (diffMonths < 12)
+      return `há ${diffMonths} mês${diffMonths > 1 ? 'es' : ''}`;
+
+    return `há ${Math.floor(diffMonths / 12)} ano${
+      Math.floor(diffMonths / 12) > 1 ? 's' : ''
+    }`;
   }
 }

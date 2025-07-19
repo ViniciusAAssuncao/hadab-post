@@ -23,7 +23,7 @@ export class PostStatsComponent {
 
   onInteraction(type: PostInteraction['type']) {
     this.interaction.emit({
-      postId: this.postId,
+      id: this.postId,
       type
     });
   }

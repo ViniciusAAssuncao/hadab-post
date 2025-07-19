@@ -1,16 +1,24 @@
 <div *ngIf="post" class="flex items-center justify-between">
   <div class="flex items-center space-x-2 text-sm truncate">
-    <span class="font-bold text-white truncate">{{ post.author.name }}</span>
+    <span class="font-bold text-white truncate">
+      {{ post.author?.name || 'Autor Desconhecido' }}
+    </span>
     
     <lucide-icon 
-      *ngIf="post.author.isVerified" 
+      *ngIf="post.author?.isVerified" 
       [img]="CheckCircleIcon" 
       class="w-4 h-4 text-blue-400 flex-shrink-0"
     ></lucide-icon>
 
-    <span class="text-gray-500 truncate">{{ '@' + post.author.username }}</span>
-    <span class="text-gray-500">·</span>
-    <span class="text-gray-500 flex-shrink-0">{{ post.stats.timeAgo }}</span>
+    <span *ngIf="post.author?.username" class="text-gray-500 truncate">
+      {{ '@' + post.author?.username }}
+    </span>
+    
+    <span *ngIf="post.author?.username && post.stats?.timeAgo" class="text-gray-500">·</span>
+    
+    <span *ngIf="post.stats?.timeAgo" class="text-gray-500 flex-shrink-0">
+      {{ post.stats?.timeAgo }}
+    </span>
   </div>
 
   <button class="text-gray-500 hover:text-blue-400 rounded-full p-1 hover:bg-blue-400/10">

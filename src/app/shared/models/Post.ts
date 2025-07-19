@@ -2,12 +2,12 @@ import { User } from "./User";
 
 export interface Post {
   id: string;
-  title: string;
-  content?: string;
-  category: PostCategory;
-  author: User;
+  title?: string;
+  content: string;
+  category?: PostCategory;
+  author?: User;
   publishedAt: Date;
-  stats: PostStats;
+  stats?: PostStats;
   imageUrl?: string;
   tags?: string[];
   isPromoted?: boolean;
@@ -22,15 +22,15 @@ export interface PostCategory {
 }
 
 export interface PostStats {
-  views: number;
-  likes: number;
-  comments: number;
-  shares: number;
-  timeAgo: string;
+  id: string;
+  views?: number;
+  likes?: number;
+  comments?: number;
+  shares?: number;
+  timeAgo?: string;
 }
 
 export interface PostInteraction {
-  postId: string;
+  id: string;
   type: 'like' | 'comment' | 'share' | 'bookmark';
-  data?: any;
 }

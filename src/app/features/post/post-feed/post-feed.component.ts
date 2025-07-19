@@ -40,7 +40,7 @@ export class PostFeedComponent implements OnInit, OnDestroy {
       takeUntil(this.destroy$)
     ).subscribe({
       next: (posts) => {
-        this.posts = posts;
+        this.posts = posts.posts;
         this.loading = false;
         this.cdr.markForCheck();
       },
