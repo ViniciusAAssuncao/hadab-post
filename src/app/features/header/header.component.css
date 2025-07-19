@@ -1,0 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap');
+
+.font-serif {
+  font-family: 'Playfair Display', serif;
+}
+
+.container {
+  max-width: 1200px;
+}
+
+button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  h1 {
+    font-size: 2rem;
+  }
+  
+  .flex-1 img {
+    height: 3rem;
+  }
+  
+  .space-x-4 {
+    gap: 0.5rem;
+  }
+}

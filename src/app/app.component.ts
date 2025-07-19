@@ -1,6 +1,6 @@
 import { Component, signal } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { HeaderComponent } from './features/header/header.component';
+import { HeaderComponent } from "./features/header/header.component";
 
 @Component({
   standalone: true,
