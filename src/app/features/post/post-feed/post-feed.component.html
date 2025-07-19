@@ -1,0 +1,16 @@
+    <div class="max-w-2xl mx-auto">
+      <div class="mb-6">
+        <h1 class="text-2xl font-bold text-white mb-2">Feed Principal</h1>
+        <p class="text-gray-400">Últimas notícias e atualizações</p>
+      </div>
+
+      <app-post-list
+        [posts]="posts"
+        [loading]="loading"
+        [loadingMore]="loadingMore"
+        [hasMore]="hasMore"
+        (postInteraction)="handlePostInteraction($event)"
+        (postClick)="handlePostClick($event)"
+        (loadMore)="loadMorePosts()"
+      ></app-post-list>
+    </div>
