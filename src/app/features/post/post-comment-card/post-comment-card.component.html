@@ -1,0 +1,86 @@
+<article class="flex space-x-3 px-4 py-3 hover:bg-white/5 transition-colors duration-200">
+  <div class="flex-shrink-0 flex flex-col items-center">
+    <img
+      *ngIf="comment.author"
+      [src]="comment.author.avatarUrl"
+      [alt]="comment.author.name"
+      class="w-10 h-10 rounded-full object-cover bg-gray-700"
+      onerror="this.src='assets/default-avatar.png';this.onerror=null;">
+
+    <div
+      *ngIf="!comment.author"
+      class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center">
+    </div>
+
+    <div
+      *ngIf="!isLast || (comment.replies && comment.replies.length > 0)"
+      class="w-0.5 flex-grow bg-gray-700 mt-2 rounded"></div>
+  </div>
+
+  <div class="flex-1 min-w-0">
+    <div class="flex items-center space-x-2 text-sm">
+      <h4
+        *ngIf="comment.author?.name"
+        class="font-bold text-white truncate">{{ comment.author!.name }}</h4>
+      <span
+        *ngIf="comment.author?.username"
+        class="text-gray-500 truncate">{{ '@' + comment.author!.username }}</span>
+      <span
+        *ngIf="!comment.author"
+        class="font-bold text-gray-400">Comentário Anônimo</span>
+      <span class="text-gray-500">·</span>
+      <span class="text-gray-500">{{ getTimeAgo(comment.createdAt) }}</span>
+    </div>
+
+    <div
+      class="mt-1 text-gray-300 whitespace-pre-wrap"
+      [innerHTML]="comment.content | nl2br"></div>
+
+    <div class="mt-3 flex items-center space-x-6 text-gray-500">
+      <button class="group flex items-center space-x-1.5 hover:text-white transition-colors duration-200">
+        <lucide-icon
+          [img]="MessageCircleIcon"
+          size="16"></lucide-icon>
+        <span class="text-xs font-semibold">RESPONDER</span>
+      </button>
+      <button
+        (click)="generateAiReply()"
+        [disabled]="isGeneratingAiReply"
+        class="group flex items-center space-x-1.5 hover:text-white transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+        <div *ngIf="!isGeneratingAiReply; else loadingIcon">
+          <lucide-icon
+            [img]="WandIcon"
+            size="16"></lucide-icon>
+        </div>
+        <ng-template #loadingIcon>
+          <div class="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        </ng-template>
+        <span class="text-xs font-semibold">{{ isGeneratingAiReply ? 'GERANDO...' : 'GERAR COM IA' }}</span>
+      </button>
+    </div>
+
+    <div
+      *ngIf="visibleReplies.length > 0"
+      class="pt-2">
+      <app-post-comment-card
+        *ngFor="let reply of visibleReplies; let last = last; trackBy: trackByCommentId"
+        [comment]="reply"
+        [post]="post"
+        [isReply]="true"
+        [parentThread]="childThread"
+        [isLast]="last && !canLoadMoreReplies">
+      </app-post-comment-card>
+
+      <div
+        *ngIf="canLoadMoreReplies"
+        class="mt-4 ml-12">
+        <button
+          (click)="loadMoreReplies()"
+          class="text-sm font-semibold text-blue-400 hover:underline">
+          <span *ngIf="repliesLeftCount > 1">Ver mais {{ repliesLeftCount }} respostas</span>
+          <span *ngIf="repliesLeftCount === 1">Ver mais 1 resposta</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</article>

@@ -78,8 +78,4 @@ export class PostFeedComponent implements OnInit, OnDestroy {
         },
       });
   }
-
-  handlePostClick(post: Post) {
-    console.log('Post clicado:', post);
-  }
 }

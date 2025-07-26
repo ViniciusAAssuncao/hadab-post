@@ -4,4 +4,5 @@ export interface User {
   username: string;
   avatarUrl?: string;
   isVerified?: boolean;
+  isOfficialAccount?: boolean;
 }

@@ -1,0 +1,33 @@
+<section class="border-b border-gray-800">
+  <div
+    *ngIf="comments.length === 0"
+    class="text-center p-10 border-t border-gray-800">
+    <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-900 flex items-center justify-center">
+      <lucide-icon
+        [img]="MessageSquareIcon"
+        size="32"
+        class="text-gray-600"></lucide-icon>
+    </div>
+    <h3 class="text-xl font-bold text-white">Nenhum comentário ainda</h3>
+    <p class="text-gray-500">Seja o primeiro a responder.</p>
+  </div>
+
+  <div *ngIf="comments.length > 0">
+    <app-post-comment-card
+      *ngFor="let comment of comments; let last = last; trackBy: trackByCommentId"
+      [comment]="comment"
+      [post]="post"
+      [isLast]="last">
+    </app-post-comment-card>
+  </div>
+
+  <div
+    *ngIf="canLoadMore"
+    class="text-center py-4 border-t border-gray-800 cursor-pointer">
+    <button
+      (click)="loadMore.emit()"
+      class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-full font-medium transition-colors">
+      Carregar mais comentários
+    </button>
+  </div>
+</section>

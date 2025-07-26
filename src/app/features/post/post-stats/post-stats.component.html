@@ -1,7 +1,7 @@
 <div class="flex items-center justify-between text-gray-500 -ml-2">
   <button (click)="onInteraction('comment'); $event.stopPropagation()" class="flex items-center space-x-1.5 group transition-colors duration-200 p-2 rounded-full hover:bg-blue-500/10">
     <lucide-icon [img]="MessageCircleIcon" class="w-5 h-5 group-hover:text-blue-500"></lucide-icon>
-    <span class="text-xs group-hover:text-blue-500">{{ formatNumber(stats.comments ?? 0) }}</span>
+    <span class="text-xs group-hover:text-blue-500">{{ comments }}</span>
   </button>
 
   <button (click)="onInteraction('like'); $event.stopPropagation()" class="flex items-center space-x-1.5 group transition-colors duration-200 p-2 rounded-full hover:bg-red-500/10">

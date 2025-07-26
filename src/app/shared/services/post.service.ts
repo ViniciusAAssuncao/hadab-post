@@ -5,6 +5,8 @@ import { Post, PostCategory, PostInteraction, PostStats } from '../models/Post';
 import PocketBase from 'pocketbase';
 import { environment } from '../../../../environments/environment';
 import { User } from '../models/User';
+import { Comments } from '../models/Comment';
+import { HttpClient } from '@angular/common/http';
 
 @Injectable({
   providedIn: 'root',
@@ -13,7 +15,7 @@ export class PostService {
   private pb: PocketBase;
   private usersCache: Map<string, User> = new Map();
 
-  constructor() {
+  constructor(private http: HttpClient) {
     this.pb = new PocketBase(environment.pocketbaseUrl);
   }
 
@@ -29,6 +31,7 @@ export class PostService {
         username: userRecord['username'] || 'desconhecido',
         avatarUrl: userRecord['avatarUrl'] || 'assets/default-avatar.png',
         isVerified: userRecord['isVerified'] || false,
+        isOfficialAccount: userRecord['isOfficialAccount'] || false,
       })),
       tap((user) => this.usersCache.set(userId, user)),
       catchError(() => {
@@ -114,7 +117,6 @@ export class PostService {
         id: expand.stats.id,
         views: expand.stats.views || 0,
         likes: expand.stats.likes || 0,
-        comments: expand.stats.comments || 0,
         shares: expand.stats.shares || 0,
         timeAgo: this.calculateTimeAgo(publishedAt),
       };
@@ -123,7 +125,6 @@ export class PostService {
         id: record.stats || 'default-stats',
         views: 0,
         likes: 0,
-        comments: 0,
         shares: 0,
         timeAgo: this.calculateTimeAgo(publishedAt),
       };
@@ -206,7 +207,6 @@ export class PostService {
             updateData.likes = (post.stats.likes || 0) + 1;
             break;
           case 'comment':
-            updateData.comments = (post.stats.comments || 0) + 1;
             break;
           case 'share':
             updateData.shares = (post.stats.shares || 0) + 1;
@@ -355,5 +355,144 @@ export class PostService {
     return `há ${Math.floor(diffMonths / 12)} ano${
       Math.floor(diffMonths / 12) > 1 ? 's' : ''
     }`;
+  }
+
+  getCommentsByPostId(
+    postId: string,
+    page: number = 1,
+    perPage: number = 10
+  ): Observable<{ comments: Comments[]; total: number }> {
+    return from(
+      this.pb.collection('comments').getList(page, perPage, {
+        filter: `postId = '${postId}'`,
+        sort: '-createdAt',
+        expand: 'author,stats',
+        fields: 'id,content,createdAt,expand.author,expand.stats,repliesId',
+      })
+    ).pipe(
+      map((response) => ({
+        comments: response.items.map((item) => this.mapToComment(item)),
+        total: response.totalItems,
+      })),
+      catchError((error) => {
+        console.error('Error fetching comments:', error);
+        return of({ comments: [], total: 0 });
+      })
+    );
+  }
+
+  private mapToComment(record: any): Comments {
+    return {
+      id: record.id,
+      postId: record.postId,
+      content: record.content,
+      repliesId: record.repliesId,
+      author: record.expand?.author
+        ? {
+            id: record.expand.author.id,
+            name: record.expand.author.name || 'Autor Desconhecido',
+            username: record.expand.author.username || 'desconhecido',
+            avatarUrl:
+              record.expand.author.avatarUrl ||
+              'https://www.gravatar.com/avatar/3b3be63a4c2a439b013787725dfce802?d=identicon',
+            isVerified: record.expand.author.isVerified || false,
+          }
+        : undefined,
+      createdAt: new Date(record.createdAt),
+      stats: record.expand?.stats
+        ? {
+            id: record.expand.stats.id,
+            views: record.expand.stats.views || 0,
+            likes: record.expand.stats.likes || 0,
+          }
+        : undefined,
+    };
+  }
+
+  createComment(
+    postId: string,
+    content: string,
+    authorId?: string,
+    parentCommentId?: string
+  ): Observable<Comments> {
+    const data: any = { postId, content, author: authorId };
+    if (parentCommentId) {
+      data.parentCommentId = parentCommentId;
+    }
+
+    return from(
+      this.pb.collection('comments').create(data, { expand: 'author,stats' })
+    ).pipe(
+      map((record: any) => this.mapToComment(record)),
+      catchError((error) => {
+        console.error('Error creating comment:', error);
+        throw error;
+      })
+    );
+  }
+
+  getRepliesByCommentId(
+    commentId: string,
+    page: number = 1,
+    perPage: number = 10
+  ): Observable<{ comments: Comments[]; total: number }> {
+    return from(
+      this.pb.collection('comments').getList(page, perPage, {
+        filter: `parentCommentId = '${commentId}'`,
+        sort: 'createdAt',
+        expand: 'author,stats',
+        fields: 'id,content,createdAt,expand.author,expand.stats',
+      })
+    ).pipe(
+      map((response) => ({
+        comments: response.items.map((item) => this.mapToComment(item)),
+        total: response.totalItems,
+      })),
+      catchError((error) => {
+        console.error('Error fetching comment replies:', error);
+        return of({ comments: [], total: 0 });
+      })
+    );
+  }
+
+  getCommentReplies(commentId: string): Observable<Comments[]> {
+    return from(
+      this.pb.collection('comments').getList(1, 100, {
+        filter: `repliesId = '${commentId}'`,
+        sort: 'createdAt',
+        expand: 'author,stats',
+        fields: 'id,content,createdAt,expand.author,expand.stats',
+      })
+    ).pipe(
+      map((response) => response.items.map((item) => this.mapToComment(item))),
+      catchError((error) => {
+        console.error('Erro ao buscar respostas do comentário:', error);
+        return of([]);
+      })
+    );
+  }
+
+  createCommentReply(
+    commentId: string,
+    content: string,
+    postId: string,
+    authorId?: string
+  ): Observable<Comments> {
+    const data: any = {
+      content,
+      postId,
+      repliesId: commentId,
+      author: authorId,
+    };
+
+    return from(
+      this.pb.collection('comments').create(data, { expand: 'author,stats' })
+    ).pipe(
+      map((record: any) => this.mapToComment(record)),
+      catchError((error) => {
+        console.error('Erro ao criar resposta do comentário:', error);
+        throw error;
+      })
+    );
   }
 }

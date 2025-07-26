@@ -25,7 +25,6 @@ export interface PostStats {
   id: string;
   views?: number;
   likes?: number;
-  comments?: number;
   shares?: number;
   timeAgo?: string;
 }

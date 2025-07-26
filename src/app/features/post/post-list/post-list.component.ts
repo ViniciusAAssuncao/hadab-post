@@ -15,7 +15,9 @@ export class PostListComponent {
   @Input() loading = false;
   @Input() loadingMore = false;
   @Input() hasMore = true;
-  
+
+  @Input() loadMoreThreshold = 5;
+
   @Output() postInteraction = new EventEmitter<PostInteraction>();
   @Output() postClick = new EventEmitter<Post>();
   @Output() loadMore = new EventEmitter<void>();
@@ -36,4 +38,3 @@ export class PostListComponent {
     this.loadMore.emit();
   }
 }
-

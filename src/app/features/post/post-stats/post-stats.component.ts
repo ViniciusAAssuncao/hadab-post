@@ -14,6 +14,7 @@ export class PostStatsComponent {
   @Input({ required: true }) stats!: PostStats;
   @Input({ required: true }) postId!: string;
   @Output() interaction = new EventEmitter<PostInteraction>();
+  @Input() comments: number = 0;
 
   readonly EyeIcon = Eye;
   readonly MessageCircleIcon = MessageCircle;

@@ -1,0 +1,27 @@
+<section class="p-4 border-b border-gray-800">
+  <div class="flex space-x-3">
+    <img
+      src="assets/default-avatar.png"
+      alt="Seu avatar"
+      class="w-12 h-12 rounded-full object-cover bg-gray-700">
+    <div class="flex-1">
+      <p class="text-gray-500 text-sm mb-1">
+ Respondendo a <span class="text-blue-400">&#64;{{ post.author?.username }}</span>
+            </p>
+      <textarea
+        [(ngModel)]="newComment"
+        placeholder="Poste sua resposta"
+        class="w-full bg-transparent text-lg text-white placeholder-gray-500 resize-none outline-none focus:ring-0"
+        rows="3"
+        maxlength="280"></textarea>
+      <div class="flex justify-end items-center mt-2">
+        <button
+          (click)="submitComment()"
+          [disabled]="!newComment.trim() || isSubmitting"
+          class="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-900 disabled:text-gray-500 text-white font-bold rounded-full transition-colors disabled:cursor-not-allowed text-sm">
+          {{ isSubmitting ? 'Responder' : 'Responder' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
