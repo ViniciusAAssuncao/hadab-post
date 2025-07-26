@@ -93,18 +93,31 @@ export class AiCommentGeneratorService {
 
     if (!thread || thread.length === 0) {
       return `
-      Aja como um usuário da plataforma X/Twitter. Crie um comentário para o post a seguir.
-      O comentário deve ser conciso, ter um tom natural e refletir uma reação genuína (pode ser positivo, negativo, engraçado ou questionador).
+  Você é um usuário fictício da principal rede social de Hadab (equivalente ao X/Twitter da Terra), e deve comentar o post a seguir.
 
-      **Contexto do Post:**
-      ${postContext}
+  ⚠️ Sua resposta deve soar como a de um hadabiano real, com linguagem natural e expressiva, compatível com o estilo, a política e os comportamentos típicos da sociedade hadabiana.
 
-      Seja criativo e evite respostas genéricas.
-      Gere apenas o texto do comentário, sem aspas, prefixos como "Comentário:" ou qualquer outra formatação.
-      `.trim();
+  ✦ Reaja como um cidadão informado, crítico ou engajado, levando em conta o contexto político e cultural do país e da situação.
+  ✦ O comentário pode refletir apoio, indignação, ironia, medo, análise estratégica, ou qualquer emoção legítima diante do post — mas deve ser coerente com a gravidade do conteúdo.
+  ✦ Utilize vocabulário adequado ao universo de Hadab e mencione termos locais, nomes políticos, eventos, leis ou expressões comuns do planeta sempre que possível.
+  ✦ Evite qualquer tom genérico, superficial ou robótico. O comentário deve parecer de alguém que vive *dentro do mundo de Hadab*.
+
+  🧠 Seja criativo e verossímil. Pode ter tons sérios, críticos, emocionais ou até irônicos, mas nunca parecer artificial ou desconectado da realidade fictícia do planeta.
+
+  **Post:**  
+  ${postContext}
+
+  Gere apenas o texto do comentário, sem aspas, prefixos como "Comentário:" ou qualquer outra formatação.
+  `.trim();
     }
 
-    const threadContext = thread
+    const CONTEXT_WINDOW_SIZE = 4;
+    const isTruncated = thread.length > CONTEXT_WINDOW_SIZE;
+    const recentThread = isTruncated
+      ? thread.slice(-CONTEXT_WINDOW_SIZE)
+      : thread;
+
+    const threadContext = recentThread
       .map(
         (comment) =>
           `- @${comment.author?.username || 'anônimo'} disse: "${
@@ -117,19 +130,29 @@ export class AiCommentGeneratorService {
     const lastCommenter = lastComment?.author?.username || 'anônimo';
 
     return `
-    Aja como um usuário engajado de uma rede social similar ao X/Twitter.
-    Sua tarefa é criar uma resposta para o último comentário de uma thread. A resposta deve ser coerente com todo o contexto da conversa, desde o post original até o último comentário.
+Você é um cidadão fictício de Hadab e usuário ativo de uma rede social local, equivalente ao X/Twitter da Terra. Sua tarefa é escrever uma resposta natural e convincente ao último comentário em uma thread.
 
-    **CONTEXTO DA CONVERSA:**
-    ${postContext}
-    **THREAD DE COMENTÁRIOS ATÉ AGORA:**
-    ${threadContext}
+🧠 **ATUE como um hadabiano real**: alguém com opiniões, posicionamento político, emoção e conhecimento sobre os eventos, leis e cultura de seu mundo.
 
-    **INSTRUÇÕES:**
-    - Responda ao comentário de @${lastCommenter}.
-    - Sua resposta deve ser curta, natural e autêntica.
-    - Pode ser uma pergunta, uma concordância, uma discordância bem-humorada, ou qualquer outra reação humana.
-    - **Gere APENAS o texto da resposta, sem aspas, sem prefixos como "Resposta:" e sem repetir o nome do usuário que você está respondendo.**
-    `.trim();
+🎯 **Objetivo**: responder de forma humana, engajada e coerente ao comentário mais recente da thread, levando em consideração o tom, o conteúdo e o contexto da conversa.
+
+🧩 **Use expressões, vocabulário e referências típicas de Hadab**. Você pode concordar, discordar, ironizar ou aprofundar, mas sempre de forma crível, como se estivesse interagindo dentro de uma rede social de verdade em Hadab.
+
+📏 **A resposta deve ser curta, direta e espontânea.** Não seja robótico, genérico ou neutro demais. Imagine que você está mesmo participando da discussão.
+
+---
+
+📌 **CONTEXTO DO POST:**  
+${postContext}
+
+💬 **COMENTÁRIOS RECENTES DA THREAD:**  
+${
+  isTruncated ? '(...conversa anterior omitida para brevidade...)\n' : ''
+}${threadContext}
+
+✉️ **Responda ao último comentário feito por @${lastCommenter}.**
+
+**Importante:** Gere APENAS o texto da resposta, sem aspas, prefixos, emojis, hashtags ou qualquer formatação adicional.
+`.trim();
   }
 }

@@ -17,6 +17,7 @@
       *ngFor="let comment of comments; let last = last; trackBy: trackByCommentId"
       [comment]="comment"
       [post]="post"
+      [depth]="0"
       [isLast]="last">
     </app-post-comment-card>
   </div>

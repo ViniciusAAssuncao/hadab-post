@@ -1,4 +1,4 @@
-<article class="flex space-x-3 px-4 py-3 hover:bg-white/5 transition-colors duration-200">
+<article class="flex space-x-3 px-4 py-3">
   <div class="flex-shrink-0 flex flex-col items-center">
     <img
       *ngIf="comment.author"
@@ -22,9 +22,6 @@
       <h4
         *ngIf="comment.author?.name"
         class="font-bold text-white truncate">{{ comment.author!.name }}</h4>
-      <span
-        *ngIf="comment.author?.username"
-        class="text-gray-500 truncate">{{ '@' + comment.author!.username }}</span>
       <span
         *ngIf="!comment.author"
         class="font-bold text-gray-400">Comentário Anônimo</span>
@@ -58,29 +55,46 @@
         <span class="text-xs font-semibold">{{ isGeneratingAiReply ? 'GERANDO...' : 'GERAR COM IA' }}</span>
       </button>
     </div>
+  </div>
+</article>
 
+<div *ngIf="shouldDisplayReplies && comment.replies && comment.replies.length > 0">
+  <div class="border-l border-gray-700 ml-6">
     <div
-      *ngIf="visibleReplies.length > 0"
-      class="pt-2">
-      <app-post-comment-card
-        *ngFor="let reply of visibleReplies; let last = last; trackBy: trackByCommentId"
-        [comment]="reply"
-        [post]="post"
-        [isReply]="true"
-        [parentThread]="childThread"
-        [isLast]="last && !canLoadMoreReplies">
-      </app-post-comment-card>
-
-      <div
-        *ngIf="canLoadMoreReplies"
-        class="mt-4 ml-12">
-        <button
-          (click)="loadMoreReplies()"
-          class="text-sm font-semibold text-blue-400 hover:underline">
-          <span *ngIf="repliesLeftCount > 1">Ver mais {{ repliesLeftCount }} respostas</span>
-          <span *ngIf="repliesLeftCount === 1">Ver mais 1 resposta</span>
-        </button>
+      *ngFor="let reply of visibleReplies; let last = last; trackBy: trackByCommentId"
+      class="relative">
+      <div class="absolute left-0 top-6 w-4 h-px bg-gray-700"></div>
+      <div class="ml-4">
+        <app-post-comment-card
+          [comment]="reply"
+          [post]="post"
+          [isReply]="true"
+          [parentThread]="childThread"
+          [depth]="depth + 1"
+          [isLast]="last && !canLoadMoreReplies"
+          [isParentExpanded]="isExpanded">
+        </app-post-comment-card>
       </div>
     </div>
   </div>
-</article>
+
+  <div
+    *ngIf="canLoadMoreReplies"
+    class="ml-14 mt-2">
+    <button
+      (click)="loadMoreReplies()"
+      class="text-sm font-semibold text-blue-400 hover:underline">
+      <span>Ver mais {{ repliesLeftCount }} {{ repliesLeftCount === 1 ? 'resposta' : 'respostas' }}</span>
+    </button>
+  </div>
+</div>
+
+<div
+  *ngIf="!shouldDisplayReplies && comment.replies && comment.replies.length > 0"
+  class="ml-14 mt-2">
+  <button
+    (click)="expandThread()"
+    class="text-sm font-semibold text-blue-400 hover:underline">
+    <span>Ver o restante da discussão ({{ comment.replies.length }})</span>
+  </button>
+</div>

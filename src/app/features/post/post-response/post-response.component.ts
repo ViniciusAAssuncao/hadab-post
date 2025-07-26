@@ -28,7 +28,7 @@ export class PostResponseComponent {
           id: 'current_user',
           name: 'Você',
           username: 'voce',
-          avatarUrl: 'assets/default-avatar.png',
+          avatarUrl: 'https://www.gravatar.com/avatar/3b3be63a4c2a439b013787725dfce802?d=identicon',
         },
         createdAt: new Date(),
         stats: {

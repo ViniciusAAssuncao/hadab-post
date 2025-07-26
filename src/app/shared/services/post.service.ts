@@ -29,7 +29,7 @@ export class PostService {
         id: userRecord.id,
         name: userRecord['name'] || 'Autor Desconhecido',
         username: userRecord['username'] || 'desconhecido',
-        avatarUrl: userRecord['avatarUrl'] || 'assets/default-avatar.png',
+        avatarUrl: userRecord['avatarUrl'] || 'https://www.gravatar.com/avatar/3b3be63a4c2a439b013787725dfce802?d=identicon',
         isVerified: userRecord['isVerified'] || false,
         isOfficialAccount: userRecord['isOfficialAccount'] || false,
       })),
@@ -39,7 +39,7 @@ export class PostService {
           id: userId,
           name: 'Autor Desconhecido',
           username: 'desconhecido',
-          avatarUrl: 'assets/default-avatar.png',
+          avatarUrl: 'https://www.gravatar.com/avatar/3b3be63a4c2a439b013787725dfce802?d=identicon',
           isVerified: false,
         };
         this.usersCache.set(userId, defaultUser);
@@ -282,7 +282,7 @@ export class PostService {
             id: '',
             name: 'Autor Desconhecido',
             username: 'desconhecido',
-            avatarUrl: 'assets/default-avatar.png',
+            avatarUrl: 'https://www.gravatar.com/avatar/3b3be63a4c2a439b013787725dfce802?d=identicon',
             isVerified: false,
           }
         )
@@ -315,7 +315,7 @@ export class PostService {
             id: '',
             name: 'Autor Desconhecido',
             username: 'desconhecido',
-            avatarUrl: 'assets/default-avatar.png',
+            avatarUrl: 'https://www.gravatar.com/avatar/3b3be63a4c2a439b013787725dfce802?d=identicon',
             isVerified: false,
           }
         )

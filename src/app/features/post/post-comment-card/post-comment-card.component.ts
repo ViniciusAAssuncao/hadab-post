@@ -8,21 +8,20 @@ import {
 import { CommonModule } from '@angular/common';
 import { Comments, NestedComment } from '../../../shared/models/Comment';
 import { Post } from '../../../shared/models/Post';
-import { User } from '../../../shared/models/User';
-import { Nl2brPipe } from '../../../shared/pipes/nl2br.pipe';
 import { LucideAngularModule, Wand2, MessageCircle } from 'lucide-angular';
 import { AiCommentGeneratorService } from '../../../shared/services/ai-comment-generator.service';
 import { finalize, switchMap } from 'rxjs';
 import { PostService } from '../../../shared/services/post.service';
+import { Nl2brPipe } from '../../../shared/pipes/nl2br.pipe';
 
 @Component({
   selector: 'app-post-comment-card',
   standalone: true,
   imports: [
     CommonModule,
-    Nl2brPipe,
     LucideAngularModule,
     PostCommentCardComponent,
+    Nl2brPipe,
   ],
   templateUrl: './post-comment-card.component.html',
 })
@@ -33,12 +32,15 @@ export class PostCommentCardComponent implements OnInit {
   @Input() isReply: boolean = false;
   @Input() postId: string = '';
   @Input() parentThread: Comments[] = [];
+  @Input() depth: number = 0;
+  @Input() isParentExpanded = false;
+
+  private readonly MAX_DEPTH = 2;
+  private readonly REPLIES_PAGE_SIZE = 2;
 
   childThread: Comments[] = [];
-
   readonly WandIcon = Wand2;
   readonly MessageCircleIcon = MessageCircle;
-  private readonly REPLIES_PAGE_SIZE = 2;
 
   private cdr = inject(ChangeDetectorRef);
   private aiCommentGenerator = inject(AiCommentGeneratorService);
@@ -48,17 +50,30 @@ export class PostCommentCardComponent implements OnInit {
   canLoadMoreReplies = false;
   repliesLeftCount = 0;
   isGeneratingAiReply = false;
+  isThreadExpanded = false;
 
   ngOnInit(): void {
     this.childThread = [...this.parentThread, this.comment];
 
     if (this.comment?.replies) {
-      this.visibleReplies = this.comment.replies.slice(
-        0,
-        this.REPLIES_PAGE_SIZE
-      );
+      if (this.isExpanded) {
+        this.visibleReplies = [...this.comment.replies];
+      } else {
+        this.visibleReplies = this.comment.replies.slice(
+          0,
+          this.REPLIES_PAGE_SIZE
+        );
+      }
       this.updateRepliesPagination();
     }
+  }
+
+  get isExpanded(): boolean {
+    return this.isThreadExpanded || this.isParentExpanded;
+  }
+
+  get shouldDisplayReplies(): boolean {
+    return this.depth < this.MAX_DEPTH || this.isExpanded;
   }
 
   generateAiReply(): void {
@@ -128,6 +143,13 @@ export class PostCommentCardComponent implements OnInit {
     this.canLoadMoreReplies = totalReplies > visibleCount;
     this.repliesLeftCount = totalReplies - visibleCount;
     this.cdr.markForCheck();
+  }
+
+  expandThread(): void {
+    if (!this.comment?.replies) return;
+    this.isThreadExpanded = true;
+    this.visibleReplies = [...this.comment.replies];
+    this.updateRepliesPagination();
   }
 
   trackByCommentId(index: number, comment: Comments): string {
